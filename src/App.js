@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Homepage from './components/Homepage';
-import MenuWithCart from './components/MenuWithCart';
-import AboutPage from './components/AboutPage';
+import MenuPage from './components/MenuPage'; // IMPORT THE NEW COMPONENT
+import AboutPage from './components/AboutUs';
+import Header from './components/Header';
 import OrderTracking from './components/OrderTracking';
 import AdminSignin from './components/admin/AdminSignin';
 import AdminLayout from './components/admin/AdminLayout';
@@ -18,7 +19,7 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<Homepage />} />
-          <Route path="/menu" element={<MenuWithCart />} />
+          <Route path="/menu" element={<MenuPage />} /> {/* UPDATED ROUTE */}
           <Route path="/about" element={<AboutPage />} />
           <Route path="/track/:token" element={<OrderTracking />} />
           

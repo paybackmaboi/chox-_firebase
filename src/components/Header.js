@@ -1,104 +1,63 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { HamburgerMenuOverlay } from './lightswind/hamburger-menu-overlay.js';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const Header = () => {
-  const navigate = useNavigate();
-
-  const menuItems = [
-    {
-      label: "Home",
-      href: "/",
-      onClick: () => {
-        navigate('/');
-      }
-    },
-    {
-      label: "Menu",
-      href: "/menu",
-      onClick: () => {
-        navigate('/menu');
-      }
-    },
-    {
-      label: "About",
-      href: "/about",
-      onClick: () => {
-        navigate('/about');
-      }
-    }
-  ];
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <>
-      {/* Desktop Header */}
-      <header className="hidden md:block fixed top-0 left-0 right-0 bg-white bg-opacity-95 backdrop-blur-md border-b border-gray-200 z-50 transition-all duration-300">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center py-4">
-            <div className="nav-brand">
-              <Link to="/" className="flex items-center gap-3 text-xl font-bold text-gray-800 hover:text-indigo-600 transition-colors">
-                {/* Logo Image */}
-                <img 
-                  src="logo.jpg"
-                  alt="CHOX KITCHEN Logo" 
-                  className="h-8 md:h-10" 
-                />
-                {/* Brand Name */}
-                <span>CHOX KITCHEN</span> 
-              </Link>
-            </div>
-            
-            {/* Desktop Navigation */}
-            <nav className="flex gap-8">
-              <Link to="/" className="text-gray-700 hover:text-indigo-600 font-medium relative after:content-[''] after:absolute after:bottom-[-5px] after:left-0 after:w-0 after:h-0.5 after:bg-indigo-600 after:transition-all after:duration-300 hover:after:w-full">Home</Link>
-              <Link to="/menu" className="text-gray-700 hover:text-indigo-600 font-medium relative after:content-[''] after:absolute after:bottom-[-5px] after:left-0 after:w-0 after:h-0.5 after:bg-indigo-600 after:transition-all after:duration-300 hover:after:w-full">Menu</Link>
-              <Link to="/about" className="text-gray-700 hover:text-indigo-600 font-medium relative after:content-[''] after:absolute after:bottom-[-5px] after:left-0 after:w-0 after:h-0.5 after:bg-indigo-600 after:transition-all after:duration-300 hover:after:w-full">About</Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile Header with Professional Hamburger Menu */}
-      <div className="md:hidden">
-        <div className="fixed top-0 left-0 right-0 bg-white bg-opacity-95 backdrop-blur-md border-b border-gray-200 z-50">
-          <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center py-4">
-              <div className="nav-brand">
-                <Link to="/" className="flex items-center gap-3 text-lg font-bold text-gray-800 hover:text-indigo-600 transition-colors">
-                  <img 
-                    src="logo.jpg"
-                    alt="CHOX KITCHEN Logo" 
-                    className="h-8" 
-                  />
-                  <span>CHOX KITCHEN</span> 
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
+    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-[#12110e]/90 border-b border-[#393528]/30 font-display">
+      <div className="w-full mx-auto px-6 h-20 flex items-center justify-between">
         
-        {/* Professional Hamburger Menu Overlay - Right Side */}
-        <HamburgerMenuOverlay
-          items={menuItems}
-          buttonTop="60px"
-          buttonLeft="calc(100% - 30px)"
-          buttonSize="md"
-          buttonColor="#4f46e5"
-          overlayBackground="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-          textColor="#ffffff"
-          fontSize="lg"
-          fontFamily="'Inter', sans-serif"
-          fontWeight="semibold"
-          animationDuration={1.2}
-          staggerDelay={0.15}
-          menuAlignment="center"
-          enableBlur={true}
-          zIndex={1000}
-          onOpen={() => console.log('Menu opened')}
-          onClose={() => console.log('Menu closed')}
-        />
+        {/* Logo Section */}
+        <Link to="/" className="flex items-center gap-3 group cursor-pointer">
+          <div className="size-10 rounded-full border border-[#e9b10c]/30 flex items-center justify-center shadow-glow bg-[#1a1814]">
+            <span className="material-symbols-outlined text-[#e9b10c] text-2xl">restaurant</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-[#fff5d6] via-[#e9b10c] to-[#b8860b] font-display uppercase drop-shadow-md">
+            Chox Kitchen
+          </h1>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-8">
+          <Link to="/" className="text-sm font-medium text-[#bab29c] hover:text-[#e9b10c] transition-colors tracking-wide">Home</Link>
+          <Link to="/menu" className="text-sm font-medium text-[#bab29c] hover:text-[#e9b10c] transition-colors tracking-wide">Menu</Link>
+          <Link to="/about" className="text-sm font-medium text-[#bab29c] hover:text-[#e9b10c] transition-colors tracking-wide">About Us</Link>
+          <Link to="/contact" className="text-sm font-medium text-[#bab29c] hover:text-[#e9b10c] transition-colors tracking-wide">Contact</Link>
+        </nav>
+
+        {/* Right Icons & Mobile Toggle */}
+        <div className="flex items-center gap-6">
+          <button className="relative group p-2 rounded-full hover:bg-white/5 transition-colors hidden sm:block">
+            <span className="material-symbols-outlined text-[#bab29c] group-hover:text-[#e9b10c] transition-colors text-2xl">search</span>
+          </button>
+          <button className="relative group p-2 rounded-full hover:bg-white/5 transition-colors hidden sm:block">
+            <span className="material-symbols-outlined text-[#bab29c] group-hover:text-[#e9b10c] transition-colors text-2xl">person</span>
+          </button>
+          <button className="relative group p-2 rounded-full hover:bg-white/5 transition-colors">
+            <span className="material-symbols-outlined text-[#bab29c] group-hover:text-[#e9b10c] transition-colors text-2xl">shopping_cart</span>
+            <div className="absolute top-1 right-0 size-4 bg-[#e9b10c] text-black text-[10px] font-bold rounded-full flex items-center justify-center shadow-glow">3</div>
+          </button>
+          
+          {/* Mobile Menu Button */}
+          <button className="md:hidden text-[#bab29c] hover:text-[#e9b10c]" onClick={() => setIsOpen(!isOpen)}>
+            <span className="material-symbols-outlined text-3xl">
+              {isOpen ? 'close' : 'menu'}
+            </span>
+          </button>
+        </div>
       </div>
-    </>
+
+      {/* Mobile Menu Dropdown */}
+      {isOpen && (
+        <div className="md:hidden absolute top-full left-0 w-full bg-[#12110e] border-b border-[#393528]/30 py-4 px-6 flex flex-col gap-4 shadow-xl h-screen z-50">
+          <Link to="/" onClick={() => setIsOpen(false)} className="text-[#bab29c] hover:text-[#e9b10c] text-xl font-medium py-3 border-b border-[#393528]/30">Home</Link>
+          <Link to="/menu" onClick={() => setIsOpen(false)} className="text-[#bab29c] hover:text-[#e9b10c] text-xl font-medium py-3 border-b border-[#393528]/30">Menu</Link>
+          <Link to="/about" onClick={() => setIsOpen(false)} className="text-[#bab29c] hover:text-[#e9b10c] text-xl font-medium py-3 border-b border-[#393528]/30">About Us</Link>
+          <Link to="/contact" onClick={() => setIsOpen(false)} className="text-[#bab29c] hover:text-[#e9b10c] text-xl font-medium py-3 border-b border-[#393528]/30">Contact</Link>
+        </div>
+      )}
+    </header>
   );
 };
 
