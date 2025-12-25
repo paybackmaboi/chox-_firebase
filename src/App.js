@@ -1,11 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Homepage from './components/Homepage';
-import MenuPage from './components/MenuPage'; // IMPORT THE NEW COMPONENT
+import MenuPage from './components/MenuPage';
 import AboutPage from './components/AboutUs';
-import Header from './components/Header';
+import FAQPage from './components/FAQPage'; 
 import OrderTracking from './components/OrderTracking';
+
+// Admin Imports
 import AdminSignin from './components/admin/AdminSignin';
+import AdminRegister from './components/admin/AdminRegister';
 import AdminLayout from './components/admin/AdminLayout';
 import SalesReports from './components/admin/SalesReports';
 import OrdersReports from './components/admin/OrdersReports';
@@ -19,13 +22,16 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<Homepage />} />
-          <Route path="/menu" element={<MenuPage />} /> {/* UPDATED ROUTE */}
+          <Route path="/menu" element={<MenuPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/faq" element={<FAQPage />} /> {/* Add this line */}
           <Route path="/track/:token" element={<OrderTracking />} />
           
           {/* Admin Routes */}
           <Route path="/admin" element={<Navigate to="/admin/signin" replace />} />
           <Route path="/admin/signin" element={<AdminSignin />} />
+          <Route path="/admin/secret-register-99" element={<AdminRegister />} />
+
           <Route
             path="/admin/reports"
             element={

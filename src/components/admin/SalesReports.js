@@ -1,67 +1,143 @@
 import React, { useState, useEffect } from 'react';
+import { db } from '../../firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import './AdminReports.css';
 
 const SalesReports = () => {
   const [period, setPeriod] = useState('all');
-  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [error, setError] = useState('');
+  
+  // State for the processed data
+  const [stats, setStats] = useState({
+    totalSales: 0,
+    totalOrders: 0,
+    salesList: [],
+    dailySales: [], // For line chart
+    productSales: [] // For pie chart
+  });
 
   useEffect(() => {
     fetchSalesData();
-  }, [period, page]);
+  }, [period]); // Refetch when period changes
 
   const fetchSalesData = async () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(
-        `http://localhost:3001/api/admin/reports/sales?period=${period}&page=${page}&limit=30`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // 1. Fetch all orders from Firestore
+      const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+      const querySnapshot = await getDocs(q);
+      
+      const orders = [];
+      let totalRevenue = 0;
+      const dailyMap = {};
+      const productMap = {};
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('adminToken');
-          window.location.href = '/admin/signin';
-          return;
-        }
-        throw new Error('Failed to fetch sales data');
-      }
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        // Convert Firestore Timestamp to JS Date
+        const dateObj = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
+        const dateKey = dateObj.toLocaleDateString('en-US'); // "12/23/2025"
 
-      const result = await response.json();
-      setData(result);
+        // Filter logic (Basic client-side filtering)
+        const now = new Date();
+        const diffTime = Math.abs(now - dateObj);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        
+        let include = true;
+        if (period === 'weekly' && diffDays > 7) include = false;
+        if (period === 'monthly' && diffDays > 30) include = false;
+        if (period === 'yearly' && diffDays > 365) include = false;
+
+        if (include) {
+            const amount = parseFloat(data.totalAmount || 0);
+            totalRevenue += amount;
+
+            // Add to list
+            orders.push({
+                id: doc.id,
+                customerName: data.customerName || 'Guest',
+                createdAt: dateObj,
+                totalAmount: amount,
+                status: data.status || 'pending'
+            });
+
+            // Aggregate Daily Sales
+            if (!dailyMap[dateKey]) dailyMap[dateKey] = 0;
+            dailyMap[dateKey] += amount;
+
+            // Aggregate Product Sales (if items exist)
+            if (data.items && Array.isArray(data.items)) {
+                data.items.forEach(item => {
+                    if (!productMap[item.name]) {
+                        productMap[item.name] = 0;
+                    }
+                    productMap[item.name] += (item.quantity || 1);
+                });
+            }
+        }
+      });
+
+      // Format Data for Charts
+      const dailySalesArr = Object.keys(dailyMap).map(date => ({
+        date,
+        total: dailyMap[date]
+      })).reverse(); // Reverse so oldest is left on chart
+
+      const productSalesArr = Object.keys(productMap).map(name => ({
+        productName: name,
+        totalQuantity: productMap[name]
+      }));
+
+      setStats({
+        totalSales: totalRevenue,
+        totalOrders: orders.length,
+        salesList: orders,
+        dailySales: dailySalesArr,
+        productSales: productSalesArr
+      });
+
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+      setError('Failed to load data from Firebase.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Helper: Get Chart Data
   const getChartData = () => {
-    if (!data) return null;
+    if (!stats.dailySales.length) return { labels: [], values: [] };
+    
+    // Take last 7 entries for cleaner chart if "all" is selected
+    const dataSlice = stats.dailySales.slice(-10); 
     
     return {
-      labels: data.dailySales.map((d) => {
+      labels: dataSlice.map((d) => {
         const date = new Date(d.date);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }),
-      values: data.dailySales.map((d) => parseFloat(d.total)),
+      values: dataSlice.map((d) => d.total),
     };
   };
 
+  // Helper: Get Pie Data
   const getPieData = () => {
-    if (!data) return [];
-    
-    const sorted = [...data.productSales].sort((a, b) => b.totalQuantity - a.totalQuantity).slice(0, 5);
-    return sorted;
+    // Top 5 selling products
+    return [...stats.productSales]
+      .sort((a, b) => b.totalQuantity - a.totalQuantity)
+      .slice(0, 5);
   };
+
+  // Pagination Logic (Client Side)
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(stats.salesList.length / ITEMS_PER_PAGE);
+  const currentTableData = stats.salesList.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE
+  );
 
   const chartData = getChartData();
   const pieData = getPieData();
@@ -99,7 +175,7 @@ const SalesReports = () => {
       </div>
 
       {loading ? (
-        <div className="loading">Loading...</div>
+        <div className="loading">Loading Firebase Data...</div>
       ) : error ? (
         <div className="error">{error}</div>
       ) : (
@@ -109,8 +185,8 @@ const SalesReports = () => {
               <div className="stat-icon-modern">💰</div>
               <div className="stat-content-modern">
                 <h3 className="stat-label-modern">Total Sales</h3>
-                <p className="stat-value-modern">${data.totalSales.toFixed(2)}</p>
-                <div className="stat-change positive">↑ 12% vs last period</div>
+                <p className="stat-value-modern">₱{stats.totalSales.toLocaleString()}</p>
+                <div className="stat-change positive">Based on {period} data</div>
               </div>
             </div>
             
@@ -118,8 +194,8 @@ const SalesReports = () => {
               <div className="stat-icon-modern">📦</div>
               <div className="stat-content-modern">
                 <h3 className="stat-label-modern">Total Orders</h3>
-                <p className="stat-value-modern">{data.totalOrders}</p>
-                <div className="stat-change positive">↑ 8% growth</div>
+                <p className="stat-value-modern">{stats.totalOrders}</p>
+                <div className="stat-change positive">Completed & Active</div>
               </div>
             </div>
             
@@ -128,9 +204,9 @@ const SalesReports = () => {
               <div className="stat-content-modern">
                 <h3 className="stat-label-modern">Avg Order Value</h3>
                 <p className="stat-value-modern">
-                  ${data.totalOrders > 0 ? (data.totalSales / data.totalOrders).toFixed(2) : '0.00'}
+                  ₱{stats.totalOrders > 0 ? (stats.totalSales / stats.totalOrders).toFixed(2) : '0.00'}
                 </p>
-                <div className="stat-change positive">↑ 4% increase</div>
+                <div className="stat-change positive">Per customer</div>
               </div>
             </div>
           </div>
@@ -139,12 +215,11 @@ const SalesReports = () => {
             <div className="chart-card chart-card-enhanced">
               <div className="chart-header-modern">
                 <h3>Sales Over Time</h3>
-                <span className="chart-subtitle">Daily revenue trend</span>
+                <span className="chart-subtitle">Revenue trend</span>
               </div>
               {chartData && chartData.values.length > 0 ? (
                 <div className="line-chart-container">
                   <svg viewBox="0 0 600 300" className="chart-svg-enhanced">
-                    {/* Gradient definitions */}
                     <defs>
                       <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                         <stop offset="0%" stopColor="#667eea" />
@@ -172,22 +247,13 @@ const SalesReports = () => {
                     ))}
                     
                     {/* Y-axis labels */}
-                    <text x="30" y="245" fontSize="12" fill="#6b7280" textAnchor="middle">
-                      $0
-                    </text>
                     {Math.max(...chartData.values) > 0 && (
                       <>
-                        <text x="30" y="195" fontSize="12" fill="#6b7280" textAnchor="middle">
-                          ${(Math.max(...chartData.values) * 0.25).toFixed(0)}
+                        <text x="30" y="55" fontSize="10" fill="#6b7280" textAnchor="middle">
+                          ₱{Math.max(...chartData.values).toFixed(0)}
                         </text>
-                        <text x="30" y="145" fontSize="12" fill="#6b7280" textAnchor="middle">
-                          ${(Math.max(...chartData.values) * 0.5).toFixed(0)}
-                        </text>
-                        <text x="30" y="95" fontSize="12" fill="#6b7280" textAnchor="middle">
-                          ${(Math.max(...chartData.values) * 0.75).toFixed(0)}
-                        </text>
-                        <text x="30" y="55" fontSize="12" fill="#6b7280" textAnchor="middle">
-                          ${Math.max(...chartData.values).toFixed(0)}
+                        <text x="30" y="245" fontSize="10" fill="#6b7280" textAnchor="middle">
+                          ₱0
                         </text>
                       </>
                     )}
@@ -196,11 +262,12 @@ const SalesReports = () => {
                     <path
                       d={`M 40,250 ${chartData.values
                         .map((val, i) => {
-                          const x = 40 + (i / (chartData.values.length - 1)) * 540;
-                          const y = 250 - (val / Math.max(...chartData.values)) * 200;
+                          const maxVal = Math.max(...chartData.values) || 1;
+                          const x = 40 + (i / (Math.max(1, chartData.values.length - 1))) * 540;
+                          const y = 250 - (val / maxVal) * 200;
                           return `L ${x},${y}`;
                         })
-                        .join(' ')} L ${40 + (540 * (chartData.values.length - 1)) / chartData.values.length},250 Z`}
+                        .join(' ')} L ${40 + (540 * (Math.max(0, chartData.values.length - 1)) / Math.max(1, chartData.values.length))},250 Z`}
                       fill="url(#fillGradient)"
                     />
                     
@@ -213,40 +280,20 @@ const SalesReports = () => {
                       strokeLinejoin="round"
                       points={chartData.values
                         .map((val, i) => {
-                          const x = 40 + (i / (chartData.values.length - 1)) * 540;
-                          const y = 250 - (val / Math.max(...chartData.values)) * 200;
+                          const maxVal = Math.max(...chartData.values) || 1;
+                          const x = 40 + (i / (Math.max(1, chartData.values.length - 1))) * 540;
+                          const y = 250 - (val / maxVal) * 200;
                           return `${x},${y}`;
                         })
                         .join(' ')}
                     />
                     
-                    {/* Data points */}
-                    {chartData.values.map((val, i) => {
-                      const x = 40 + (i / (chartData.values.length - 1)) * 540;
-                      const y = 250 - (val / Math.max(...chartData.values)) * 200;
-                      return (
-                        <g key={i}>
-                          <circle
-                            cx={x}
-                            cy={y}
-                            r="8"
-                            fill="#667eea"
-                            stroke="white"
-                            strokeWidth="3"
-                          />
-                          <circle
-                            cx={x}
-                            cy={y}
-                            r="4"
-                            fill="#764ba2"
-                          />
-                        </g>
-                      );
-                    })}
-                    
                     {/* X-axis labels */}
                     {chartData.labels.map((label, i) => {
-                      const x = 40 + (i / (chartData.values.length - 1)) * 540;
+                      const x = 40 + (i / (Math.max(1, chartData.values.length - 1))) * 540;
+                      // Only show some labels to avoid crowding
+                      if (chartData.labels.length > 5 && i % 2 !== 0) return null;
+                      
                       return (
                         <text
                           key={i}
@@ -266,7 +313,6 @@ const SalesReports = () => {
                 <div className="no-data-container">
                   <div className="no-data-icon">📈</div>
                   <p className="no-data">No sales data available yet</p>
-                  <p className="no-data-hint">Complete some orders to see your sales trend</p>
                 </div>
               )}
             </div>
@@ -312,12 +358,12 @@ const SalesReports = () => {
                 </tr>
               </thead>
               <tbody>
-                {data.sales.map((sale) => (
+                {currentTableData.map((sale) => (
                   <tr key={sale.id}>
-                    <td>#{sale.id}</td>
+                    <td>#{sale.id.slice(0, 8)}</td>
                     <td>{sale.customerName}</td>
                     <td>{new Date(sale.createdAt).toLocaleDateString()}</td>
-                    <td>${parseFloat(sale.totalAmount).toFixed(2)}</td>
+                    <td>₱{sale.totalAmount.toFixed(2)}</td>
                     <td>
                       <span className={`status-badge ${sale.status}`}>
                         {sale.status}
@@ -336,11 +382,11 @@ const SalesReports = () => {
                 Previous
               </button>
               <span>
-                Page {page} of {data.pagination.totalPages}
+                Page {page} of {Math.max(1, totalPages)}
               </span>
               <button
                 onClick={() => setPage(page + 1)}
-                disabled={page >= data.pagination.totalPages}
+                disabled={page >= totalPages}
               >
                 Next
               </button>
@@ -353,4 +399,3 @@ const SalesReports = () => {
 };
 
 export default SalesReports;
-

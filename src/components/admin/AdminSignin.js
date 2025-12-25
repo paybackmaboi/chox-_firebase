@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '../../firebase'; // Import firebase auth
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import './AdminSignin.css';
 
 const AdminSignin = () => {
-  const [formData, setFormData] = useState({ username: '', password: '' });
+  // Switched username to email as Firebase uses email by default
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -21,30 +24,15 @@ const AdminSignin = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/admin/signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Login failed');
-        return;
-      }
-
-      // Store token and admin info
-      localStorage.setItem('adminToken', data.token);
-      localStorage.setItem('adminUser', JSON.stringify(data.admin));
-
-      // Redirect to sales reports
+      // Firebase Sign In
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      
+      // Navigate to dashboard on success
       navigate('/admin/reports/sales');
+      
     } catch (err) {
-      setError('Network error. Please try again.');
       console.error('Login error:', err);
+      setError('Invalid email or password.');
     } finally {
       setLoading(false);
     }
@@ -67,15 +55,15 @@ const AdminSignin = () => {
           {error && <div className="error-message">{error}</div>}
 
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="email">Email</label>
             <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
+              type="email" // Changed type to email
+              id="email"
+              name="email"
+              value={formData.email}
               onChange={handleChange}
               required
-              placeholder="Enter username"
+              placeholder="Enter admin email"
             />
           </div>
 
@@ -96,14 +84,9 @@ const AdminSignin = () => {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <div className="signin-footer">
-          <p>Default: username=admin, password=admin123</p>
-        </div>
       </div>
     </div>
   );
 };
 
 export default AdminSignin;
-

@@ -1,326 +1,306 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import { db } from '../firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import './OrderTracking.css';
+
+// --- Fix for Missing Leaflet Icons ---
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+const defaultCenter = [10.3157, 123.8854];
 
 const OrderTracking = () => {
   const { token } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
+  
+  // State for particles
+  const [particles, setParticles] = useState([]);
 
   useEffect(() => {
-    fetchOrder();
-    // Poll every 10 seconds for status updates
-    const interval = setInterval(fetchOrder, 10000);
-    return () => clearInterval(interval);
+    // Generate particles
+    const particleCount = 35;
+    const newParticles = Array.from({ length: particleCount }).map((_, i) => ({
+      id: i,
+      left: Math.random() * 100, // 0-100% width
+      size: Math.random() * 5 + 3, 
+      duration: Math.random() * 30 + 25, 
+      delay: Math.random() * 10,
+      opacity: Math.random() * 0.6 + 0.4 
+    }));
+    setParticles(newParticles);
+  }, []);
+
+  useEffect(() => {
+    if (!token) {
+      setError('Invalid tracking link.');
+      setLoading(false);
+      return;
+    }
+
+    const q = query(collection(db, "orders"), where("trackingToken", "==", token));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      if (querySnapshot.empty) {
+        setError('Order not found.');
+      } else {
+        const orderDoc = querySnapshot.docs[0];
+        setOrder({ id: orderDoc.id, ...orderDoc.data() });
+      }
+      setLoading(false);
+    }, (err) => {
+      console.error("Tracking Error:", err);
+      setError('Failed to load order details.');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [token]);
 
-  const fetchOrder = async () => {
-    try {
-      const response = await fetch(`http://localhost:3001/api/orders/track/${token}`);
-      if (!response.ok) {
-        throw new Error('Order not found');
-      }
-      const data = await response.json();
-      setOrder(data);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  const getStepStatus = (stepName) => {
+    if (!order) return 'pending';
+    const statusOrder = ['pending', 'preparing', 'on_the_way', 'delivered', 'completed'];
+    const currentIdx = statusOrder.indexOf(order.status);
+    const stepIdx = statusOrder.indexOf(stepName);
+
+    if (currentIdx > stepIdx) return 'completed';
+    if (currentIdx === stepIdx) return 'active';
+    return 'pending';
   };
 
-  const getStatusSteps = () => {
-    return [
-      { key: 'pending', label: 'Order Received', stepNumber: '01', active: ['pending', 'preparing', 'on_the_way', 'delivered', 'completed'].includes(order?.status) },
-      { key: 'preparing', label: 'Preparing', stepNumber: '02', active: ['preparing', 'on_the_way', 'delivered', 'completed'].includes(order?.status) },
-      { key: 'on_the_way', label: 'On the Way', stepNumber: '03', active: ['on_the_way', 'delivered', 'completed'].includes(order?.status) },
-      { key: 'delivered', label: 'Delivered', stepNumber: '04', active: ['delivered', 'completed'].includes(order?.status) },
-      { key: 'completed', label: 'Completed', stepNumber: '05', active: ['completed'].includes(order?.status) },
-    ];
-  };
+  if (loading) return (
+    <div className="loading-screen">
+      <div className="spinner"></div>
+      <h2>Locating your order...</h2>
+    </div>
+  );
 
-  if (loading) {
-    return (
-      <div className="tracking-container">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <h2 className="loading-text">Tracking Your Order</h2>
-          <p className="loading-subtext">Please wait while we fetch your order details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !order) {
-    return (
-      <div className="tracking-container">
-        <div className="error-container">
-          <div className="error-icon">⚠️</div>
-          <h2 className="error-title">Order Not Found</h2>
-          <p className="error-message-text">{error || 'Unable to find the order with this tracking code.'}</p>
-          <p className="error-hint">Please check your tracking link and try again.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const statusSteps = getStatusSteps();
+  if (error) return (
+    <div className="error-screen">
+      <span className="material-symbols-outlined" style={{fontSize: '48px', color: '#ef4444', marginBottom: '1rem'}}>error</span>
+      <h2>Tracking Failed</h2>
+      <p style={{color: '#e2dcc8', marginBottom: '2rem'}}>{error}</p>
+      <Link to="/" className="action-btn btn-secondary" style={{textDecoration: 'none'}}>Return Home</Link>
+    </div>
+  );
 
   return (
-    <div className="tracking-container">
-      <div className="tracking-header">
-        <div className="tracking-logo">
-          <img 
-            src="/logo.jpg" 
-            alt="CHOX Kitchen Logo" 
-            className="tracking-logo-image"
+    <div className="tracking-page">
+      
+      {/* --- LIVE BACKGROUND OBJECTS --- */}
+      <div className="live-background">
+        {particles.map((p) => (
+          <div 
+            key={p.id} 
+            className="particle"
+            style={{
+              left: `${p.left}%`,
+              width: `${p.size}px`,
+              height: `${p.size}px`,
+              animationDuration: `${p.duration}s`,
+              animationDelay: `${p.delay}s`
+            }}
           />
-        </div>
-        <h1>Order Tracking</h1>
-        <p className="order-id">Order #{order.id}</p>
-        <div className="order-badge">
-          <span className={`status-badge status-${order.status}`}>
-            {order.status.replace('_', ' ').toUpperCase()}
-          </span>
-        </div>
+        ))}
       </div>
+      {/* ------------------------------- */}
 
-      <div className="tracking-card">
-        {/* Modern Professional Timeline */}
-        <div className="status-timeline-modern">
-          {statusSteps.map((step, index) => {
-            const isCompleted = step.active && order.status !== step.key;
-            const isCurrent = order.status === step.key;
-            const isPending = !step.active;
+      {/* Navbar */}
+      <nav className="tracking-navbar">
+        <Link to="/" className="nav-brand">
+          {/* UPDATED LOGO */}
+          <img src="/logo.jpg" alt="CHOX Logo" className="nav-logo" />
+          <span className="brand-text">CHOX KITCHEN</span>
+        </Link>
+        <Link to="/" className="nav-link">Back to Menu</Link>
+      </nav>
+
+      <main className="layout-container">
+        
+        {/* Header */}
+        <header className="page-header">
+          <div className="header-top">
+            <div className="order-title-group">
+              <h1 className="order-title">Order #{order.id.slice(0, 6).toUpperCase()}</h1>
+              <span className={`status-badge ${order.status}`}>
+                {order.status.replace(/_/g, ' ')}
+              </span>
+            </div>
+            <div style={{display: 'flex', gap: '1rem'}}>
+              {order.status === 'pending' && (
+                <button className="action-btn btn-secondary">Cancel Order</button>
+              )}
+            </div>
+          </div>
+          <p className="order-date">
+            Placed on {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleString() : new Date().toLocaleDateString()}
+          </p>
+        </header>
+
+        <div className="dashboard-grid">
+          
+          <div className="left-panel">
+            <div className="card eta-card">
+              <span className="material-symbols-outlined eta-icon-bg">schedule</span>
+              <div className="eta-label">Estimated Arrival</div>
+              <div className="eta-time">
+                {order.status === 'delivered' ? 'Arrived' : 
+                 order.status === 'on_the_way' ? '15 min' : 'Pending'}
+              </div>
+              <div style={{background: '#3d362b', height: '6px', borderRadius: '4px', overflow: 'hidden'}}>
+                 <div style={{
+                   height: '100%', 
+                   background: '#ecb613', 
+                   width: order.status === 'pending' ? '10%' : 
+                          order.status === 'preparing' ? '40%' : 
+                          order.status === 'on_the_way' ? '75%' : '100%'
+                 }}></div>
+              </div>
+            </div>
+
+            <div className="card">
+              <h3 style={{fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem', borderBottom: '1px solid #3d362b', paddingBottom: '1rem'}}>Order Status</h3>
+              <div className="timeline-container">
+                <TimelineItem status="completed" title="Order Confirmed" desc="We have received your order." icon="check" isLast={false} />
+                <TimelineItem status={getStepStatus('preparing')} title="Preparing" desc="Kitchen is preparing your food." icon="skillet" isLast={false} />
+                <TimelineItem status={getStepStatus('on_the_way')} title="Out for Delivery" desc="Rider is on the way." icon="pedal_bike" isLast={false} />
+                <TimelineItem status={getStepStatus('delivered')} title="Delivered" desc="Enjoy your meal!" icon="home" isLast={true} />
+              </div>
+            </div>
+          </div>
+
+          <div className="right-panel">
             
-            return (
-              <div key={step.key} className={`timeline-step-modern ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''} ${isPending ? 'pending' : ''}`}>
-                <div className="step-node">
-                  {isCompleted ? (
-                    <svg className="checkmark-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  ) : (
-                    <span className="step-number">{step.stepNumber}</span>
-                  )}
+            {/* Map Section */}
+            <div className="map-placeholder" style={{padding: 0, overflow: 'hidden', border: '1px solid #3d362b', height: '350px', position: 'relative'}}>
+              
+              <MapContainer 
+                center={defaultCenter} 
+                zoom={13} 
+                style={{ width: '100%', height: '100%', zIndex: 1 }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker position={defaultCenter}>
+                  <Popup>
+                    Delivery Location <br /> {order.deliveryAddress}
+                  </Popup>
+                </Marker>
+              </MapContainer>
+
+              {/* Address Badge */}
+              <div className="address-float" style={{zIndex: 1000}}>
+                <span className="material-symbols-outlined" style={{color: '#ecb613'}}>location_on</span>
+                <div>
+                   <div className="address-label">Delivering To</div>
+                   <div className="address-value">{order.deliveryAddress}</div>
                 </div>
-                <div className="step-label-modern">{step.label}</div>
-                {index < statusSteps.length - 1 && (
-                  <div className={`step-connector-modern ${step.active ? 'active' : ''}`}></div>
+              </div>
+            </div>
+
+            <div className="dashboard-grid" style={{gridTemplateColumns: '1fr 1fr', gap: '1.5rem'}}>
+              <div className="card" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+                 <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #3d362b', paddingBottom: '1rem'}}>
+                    <h3 style={{fontSize: '1.1rem', fontWeight: '700', margin: 0}}>Your Items</h3>
+                    <span style={{fontSize: '0.8rem', background: '#3d362b', padding: '2px 8px', borderRadius: '4px'}}>{order.items?.length || 0} Items</span>
+                 </div>
+                 <div style={{flex: 1}}>
+                    {order.items?.map((item, idx) => (
+                      <div key={idx} className="item-row">
+                        <div className="item-image-placeholder">
+                          <span className="material-symbols-outlined">fastfood</span>
+                        </div>
+                        <div className="item-details">
+                          <h4>{item.name || item.productName}</h4>
+                          <span className="qty">Qty: {item.quantity}</span>
+                          <span className="price">₱{item.price}</span>
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+
+              <div className="card">
+                <h3 style={{fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem'}}>Payment</h3>
+                <div className="summary-row">
+                  <span className="summary-label">Subtotal</span>
+                  <span className="summary-value">₱{order.totalAmount}</span>
+                </div>
+                <div className="summary-row">
+                  <span className="summary-label">Delivery Fee</span>
+                  <span className="summary-value">Free</span>
+                </div>
+                <div className="total-row">
+                  <span>Total</span>
+                  <span className="total-value">₱{order.totalAmount}</span>
+                </div>
+                <div className="balance-box">
+                  <span className="balance-label">Paid (50%)</span>
+                  <span style={{fontWeight: '700'}}>₱{(order.totalAmount / 2).toFixed(2)}</span>
+                </div>
+                <div className="balance-box" style={{marginTop: '0.5rem', background: 'transparent', borderColor: '#3d362b'}}>
+                  <span className="balance-label" style={{color: '#e2dcc8'}}>Balance Due</span>
+                  <span style={{fontWeight: '700'}}>₱{(order.totalAmount / 2).toFixed(2)}</span>
+                </div>
+
+                {/* --- RECEIPT IMAGE PREVIEW --- */}
+                {order.receiptImage && (
+                  <div className="receipt-preview">
+                    <div className="receipt-title">
+                      <span className="material-symbols-outlined" style={{fontSize: '18px'}}>receipt_long</span>
+                      Payment Proof
+                    </div>
+                    <div className="receipt-img-container">
+                      <a href={order.receiptImage} target="_blank" rel="noreferrer">
+                        <img 
+                          src={order.receiptImage} 
+                          alt="Receipt Proof" 
+                          className="receipt-img" 
+                        />
+                      </a>
+                    </div>
+                    <div style={{textAlign: 'center', marginTop: '0.5rem'}}>
+                      <a href={order.receiptImage} target="_blank" rel="noreferrer" style={{fontSize: '0.8rem', color: '#ecb613', textDecoration: 'none'}}>Click to enlarge</a>
+                    </div>
+                  </div>
                 )}
               </div>
-            );
-          })}
-        </div>
-
-        {/* Current Status Message */}
-        <div className={`status-banner status-${order.status}`}>
-          <div className="status-banner-icon">
-            {order.status === 'pending' && '⏳'}
-            {order.status === 'preparing' && '👨‍🍳'}
-            {order.status === 'on_the_way' && '🚗'}
-            {order.status === 'delivered' && '✅'}
-            {order.status === 'completed' && '🎉'}
-          </div>
-          <div className="status-banner-content">
-            {order.status === 'pending' && (
-              <div>
-                <h3>Order Received</h3>
-                <p>Your order has been received and is waiting for confirmation.</p>
-              </div>
-            )}
-            {order.status === 'preparing' && (
-              <div>
-                <h3>Preparing Your Meal</h3>
-                <p className="cooking-text">🔥 Our chefs are preparing your delicious meal!</p>
-              </div>
-            )}
-            {order.status === 'on_the_way' && (
-              <div>
-                <h3>Out for Delivery</h3>
-                <p>🚗 Your order is on the way! It should arrive soon.</p>
-              </div>
-            )}
-            {order.status === 'delivered' && (
-              <div>
-                <h3>Delivered Successfully</h3>
-                <p>✅ Your order has been delivered! Enjoy your meal!</p>
-              </div>
-            )}
-            {order.status === 'completed' && (
-              <div>
-                <h3>Order Completed</h3>
-                <p>✅ Order completed. Thank you for choosing CHOX Kitchen!</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Order Details */}
-        <div className="order-info-section">
-          <div className="section-header">
-            <div className="section-icon">📋</div>
-            <h3>Order Information</h3>
-          </div>
-          <div className="order-details">
-            <div className="detail-row">
-              <div className="detail-group">
-                <span className="detail-label">Customer Name</span>
-                <span className="detail-value">{order.customerName}</span>
-              </div>
-            </div>
-            {order.customerEmail && (
-              <div className="detail-row">
-                <div className="detail-group">
-                  <span className="detail-label">Email</span>
-                  <span className="detail-value">{order.customerEmail}</span>
-                </div>
-              </div>
-            )}
-            {order.customerPhone && (
-              <div className="detail-row">
-                <div className="detail-group">
-                  <span className="detail-label">Phone Number</span>
-                  <span className="detail-value">{order.customerPhone}</span>
-                </div>
-              </div>
-            )}
-            {order.deliveryAddress && (
-              <div className="detail-row">
-                <div className="detail-group">
-                  <span className="detail-label">Delivery Address</span>
-                  <span className="detail-value">{order.deliveryAddress}</span>
-                </div>
-              </div>
-            )}
-            {order.specialInstructions && (
-              <div className="detail-row">
-                <div className="detail-group">
-                  <span className="detail-label">Special Instructions</span>
-                  <span className="detail-value special-instructions">{order.specialInstructions}</span>
-                </div>
-              </div>
-            )}
-            <div className="detail-row">
-              <div className="detail-group">
-                <span className="detail-label">Order Date</span>
-                <span className="detail-value">{new Date(order.orderDate).toLocaleString('en-US', { 
-                  weekday: 'long',
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}</span>
-              </div>
             </div>
           </div>
         </div>
+      </main>
+    </div>
+  );
+};
 
-        {/* Order Items */}
-        <div className="order-info-section">
-          <div className="section-header">
-            <div className="section-icon">🍽️</div>
-            <h3>Order Items</h3>
-          </div>
-          <div className="items-list">
-            {order.Items?.map((item, index) => (
-              <div key={item.id || index} className="item-card">
-                <div className="item-info">
-                  <span className="item-name">{item.productName}</span>
-                  <span className="item-quantity">Quantity: {item.quantity}</span>
-                </div>
-                <span className="item-price">${parseFloat(item.subtotal).toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-          <div className="payment-summary">
-            <div className="payment-row">
-              <span className="payment-label">Subtotal:</span>
-              <span className="payment-value">${parseFloat(order.totalAmount).toFixed(2)}</span>
-            </div>
-            <div className="payment-row highlight">
-              <span className="payment-label">Downpayment (50%):</span>
-              <span className="payment-value">${(parseFloat(order.totalAmount) * 0.5).toFixed(2)}</span>
-            </div>
-            <div className="payment-row">
-              <span className="payment-label">Remaining Balance:</span>
-              <span className="payment-value">${(parseFloat(order.totalAmount) * 0.5).toFixed(2)}</span>
-            </div>
-            <div className="order-total">
-              <span className="total-label">Total Amount:</span>
-              <span className="total-amount">${parseFloat(order.totalAmount).toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Receipt Display */}
-        {order.receiptImage && (
-          <div className="order-info-section">
-            <div className="section-header">
-              <div className="section-icon">🧾</div>
-              <h3>Payment Receipt</h3>
-            </div>
-            <div className="receipt-display">
-              <img 
-                src={`http://localhost:3001${order.receiptImage}`} 
-                alt="Downpayment Receipt" 
-                className="receipt-image"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML = `
-                    <div style="padding: 20px; text-align: center; color: #dc2626;">
-                      <p>Failed to load receipt image</p>
-                    </div>
-                  `;
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="action-buttons">
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              const btn = document.querySelector('.share-button');
-              if (btn) {
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '✓ Link Copied!';
-                btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-                setTimeout(() => {
-                  btn.innerHTML = originalText;
-                  btn.style.background = '';
-                }, 2000);
-              }
-            }}
-            className="share-button"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-            </svg>
-            Copy Tracking Link
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="print-button"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="6 9 6 2 18 2 18 9"></polyline>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-              <rect x="6" y="14" width="12" height="8"></rect>
-            </svg>
-            Print Order
-          </button>
-        </div>
+const TimelineItem = ({ status, title, desc, icon, isLast }) => {
+  return (
+    <div className={`timeline-step ${status}`}>
+      <div className="step-icon">
+        <span className="material-symbols-outlined" style={{fontSize: '1.2rem'}}>{icon}</span>
+      </div>
+      {!isLast && <div className="timeline-line"></div>}
+      <div className="step-content">
+        <h4>{title}</h4>
+        <p>{desc}</p>
       </div>
     </div>
   );
 };
 
 export default OrderTracking;
-

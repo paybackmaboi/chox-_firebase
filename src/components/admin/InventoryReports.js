@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { db } from '../../firebase';
+import { 
+  collection, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc 
+} from 'firebase/firestore';
 import './AdminReports.css';
 
 const InventoryReports = () => {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Pagination State (Client-side pagination for Firestore)
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
+  const ITEMS_PER_PAGE = 30;
+  
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredInventory, setFilteredInventory] = useState([]);
+  
+  // Form State
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -28,77 +41,78 @@ const InventoryReports = () => {
 
   useEffect(() => {
     fetchInventory();
-  }, [page]);
-
-  useEffect(() => {
-    // Filter inventory based on search term
-    if (searchTerm.trim() === '') {
-      setFilteredInventory(inventory);
-    } else {
-      const filtered = inventory.filter(item => {
-        return item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               item.category.toLowerCase().includes(searchTerm.toLowerCase());
-      });
-      setFilteredInventory(filtered);
-    }
-  }, [searchTerm, inventory]);
+  }, []);
 
   const fetchInventory = async () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('adminToken');
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '30',
-      });
+      // Connect to "inventory" collection in Firestore
+      const querySnapshot = await getDocs(collection(db, "inventory"));
+      
+      const items = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
 
-      const response = await fetch(`http://localhost:3001/api/admin/reports/inventory?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('adminToken');
-          window.location.href = '/admin/signin';
-          return;
-        }
-        throw new Error('Failed to fetch inventory');
-      }
-
-      const result = await response.json();
-      setInventory(result.inventory);
-      setPagination(result.pagination);
+      setInventory(items);
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+      setError('Failed to fetch inventory from Firebase');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddQuantity = async (id) => {
-    const quantity = prompt('Enter quantity to add:');
-    if (!quantity || isNaN(quantity) || quantity <= 0) return;
+  // --- Filtering & Pagination Logic ---
+  const getFilteredInventory = () => {
+    if (searchTerm.trim() === '') {
+      return inventory;
+    }
+    return inventory.filter(item => {
+      const name = item.name ? item.name.toLowerCase() : '';
+      const category = item.category ? item.category.toLowerCase() : '';
+      const term = searchTerm.toLowerCase();
+      return name.includes(term) || category.includes(term);
+    });
+  };
 
-    if (!window.confirm(`Add ${quantity} to this item?`)) return;
+  const filteredItems = getFilteredInventory();
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+  const currentItems = filteredItems.slice(
+    (page - 1) * ITEMS_PER_PAGE, 
+    page * ITEMS_PER_PAGE
+  );
+
+  // --- Actions ---
+
+  const handleAddQuantity = async (id, currentQuantity) => {
+    const quantityStr = prompt('Enter quantity to add:');
+    if (!quantityStr) return;
+    
+    const quantityToAdd = parseFloat(quantityStr);
+    if (isNaN(quantityToAdd) || quantityToAdd <= 0) {
+      alert("Please enter a valid number");
+      return;
+    }
+
+    if (!window.confirm(`Add ${quantityToAdd} to this item?`)) return;
 
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:3001/api/admin/inventory/${id}/add-quantity`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ quantity }),
+      const itemRef = doc(db, "inventory", id);
+      const newQuantity = parseFloat(currentQuantity || 0) + quantityToAdd;
+      
+      await updateDoc(itemRef, {
+        quantity: newQuantity
       });
 
-      if (response.ok) {
-        fetchInventory();
-      } else {
-        alert('Failed to update inventory');
-      }
+      // Update local state immediately for better UX
+      setInventory(prev => prev.map(item => 
+        item.id === id ? { ...item, quantity: newQuantity } : item
+      ));
+      
     } catch (err) {
+      console.error(err);
       alert('Error updating inventory');
     }
   };
@@ -107,18 +121,12 @@ const InventoryReports = () => {
     if (!window.confirm('Are you sure you want to delete this item?')) return;
 
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:3001/api/admin/inventory/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        fetchInventory();
-      } else {
-        alert('Failed to delete item');
-      }
+      await deleteDoc(doc(db, "inventory", id));
+      
+      // Update local state
+      setInventory(prev => prev.filter(item => item.id !== id));
     } catch (err) {
+      console.error(err);
       alert('Error deleting item');
     }
   };
@@ -127,37 +135,36 @@ const InventoryReports = () => {
     e.preventDefault();
     
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:3001/api/admin/inventory', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      await addDoc(collection(db, "inventory"), {
+        name: formData.name,
+        category: formData.category,
+        quantity: parseFloat(formData.quantity),
+        unit: formData.unit,
+        minStockLevel: parseFloat(formData.minStockLevel),
+        supplier: formData.supplier,
+        createdAt: new Date()
       });
 
-      if (response.ok) {
-        setShowModal(false);
-        fetchInventory();
-        setFormData({
-          name: '',
-          category: '',
-          quantity: 0,
-          unit: 'pcs',
-          minStockLevel: 0,
-          supplier: '',
-        });
-      } else {
-        alert('Failed to add inventory item');
-      }
+      setShowModal(false);
+      fetchInventory(); // Refresh list
+      
+      // Reset form
+      setFormData({
+        name: '',
+        category: '',
+        quantity: 0,
+        unit: 'pcs',
+        minStockLevel: 0,
+        supplier: '',
+      });
     } catch (err) {
+      console.error(err);
       alert('Error adding inventory item');
     }
   };
 
   const isLowStock = (item) => {
-    return parseFloat(item.quantity) < parseFloat(item.minStockLevel);
+    return parseFloat(item.quantity || 0) < parseFloat(item.minStockLevel || 0);
   };
 
   return (
@@ -174,13 +181,13 @@ const InventoryReports = () => {
           type="text"
           placeholder="Search by name or category..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
           className="search-input"
         />
       </div>
 
       {loading ? (
-        <div className="loading">Loading...</div>
+        <div className="loading">Loading Inventory...</div>
       ) : error ? (
         <div className="error">{error}</div>
       ) : (
@@ -198,7 +205,7 @@ const InventoryReports = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredInventory.map((item) => (
+                {currentItems.map((item) => (
                 <tr
                   key={item.id}
                   className={isLowStock(item) ? 'low-stock' : ''}
@@ -211,7 +218,7 @@ const InventoryReports = () => {
                   <td>
                     <div className="action-buttons">
                       <button
-                        onClick={() => handleAddQuantity(item.id)}
+                        onClick={() => handleAddQuantity(item.id, item.quantity)}
                         className="add-btn"
                       >
                         Add
@@ -232,7 +239,7 @@ const InventoryReports = () => {
 
           {/* Mobile Card View */}
           <div className="mobile-cards">
-            {inventory.map((item) => (
+            {currentItems.map((item) => (
               <div
                 key={item.id}
                 className={`mobile-card ${isLowStock(item) ? 'low-stock' : ''}`}
@@ -263,7 +270,7 @@ const InventoryReports = () => {
                 </div>
                 <div className="mobile-card-actions">
                   <button
-                    onClick={() => handleAddQuantity(item.id)}
+                    onClick={() => handleAddQuantity(item.id, item.quantity)}
                     className="add-btn"
                   >
                     Add Quantity
@@ -283,10 +290,10 @@ const InventoryReports = () => {
             <button onClick={() => setPage(page - 1)} disabled={page === 1}>
               Previous
             </button>
-            <span>Page {pagination.page} of {pagination.totalPages}</span>
+            <span>Page {page} of {Math.max(1, totalPages)}</span>
             <button
               onClick={() => setPage(page + 1)}
-              disabled={page >= pagination.totalPages}
+              disabled={page >= totalPages}
             >
               Next
             </button>
@@ -389,4 +396,3 @@ const InventoryReports = () => {
 };
 
 export default InventoryReports;
-
