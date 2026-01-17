@@ -1,97 +1,46 @@
-import React, { useState } from 'react';
-import Header from './Header'; 
-import OrderSummary from './OrderSummary'; 
+import React, { useState, useEffect } from 'react';
+import Header from './Header';
+import OrderSummary from './OrderSummary';
+
+import { db } from '../firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 const MenuPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("All Items");
   const [sortOption, setSortOption] = useState("Recommended");
-  
+
   const [cart, setCart] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
 
+  const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const categories = ["All Items", "Appetizers", "Main Courses", "Dessert", "Beverages"];
 
-  const menuItems = [
-    {
-      id: 1,
-      title: "Gold Leaf Steak",
-      price: 145.00,
-      description: "Premium A5 Wagyu beef perfectly seared and wrapped in edible 24k gold leaf. Served with truffle mashed potatoes.",
-      time: "30 mins",
-      category: "Main Courses",
-      image: "/images/1.jpg", 
-      tag: { icon: "local_fire_department", title: "Chef's Special" }
-    },
-    {
-      id: 2,
-      title: "Saffron Risotto",
-      price: 34.00,
-      description: "Creamy arborio rice infused with premium saffron threads.",
-      time: "20 mins",
-      category: "Main Courses",
-      image: "/images/2.jpg",
-      tag: { icon: "eco", title: "Vegetarian" }
-    },
-    {
-      id: 3,
-      title: "Truffle Pasta",
-      price: 42.00,
-      description: "Handmade tagliatelle pasta tossed in a rich butter sauce with truffles.",
-      time: "25 mins",
-      category: "Main Courses",
-      image: "/images/3.jpg",
-      tag: { icon: "restaurant_menu", title: "Chef's Choice" }
-    },
-    {
-      id: 4,
-      title: "Royal Ribeye",
-      price: 58.00,
-      description: "Dry-aged for 45 days, this bone-in ribeye is grilled to perfection.",
-      time: "40 mins",
-      category: "Main Courses",
-      image: "/images/4.jpg",
-      tag: { icon: "thumb_up", title: "Top Rated" }
-    },
-    {
-      id: 5,
-      title: "Imperial Lamb",
-      price: 85.00,
-      description: "Succulent rack of lamb with a pistachio crust.",
-      time: "35 mins",
-      category: "Main Courses",
-      image: "/images/5.jpg",
-      imageStyle: { filter: 'hue-rotate(15deg)' }
-    },
-    {
-      id: 6,
-      title: "Golden Beet Salad",
-      price: 28.00,
-      description: "Roasted golden beets, goat cheese mousse, and candied walnuts.",
-      time: "15 mins",
-      category: "Appetizers", 
-      image: "/images/6.jpg",
-      imageStyle: { filter: 'hue-rotate(-20deg)' }
-    },
-    {
-      id: 7,
-      title: "24K Chocolate Dome",
-      price: 45.00,
-      description: "Dark chocolate sphere melting under hot caramel sauce.",
-      time: "15 mins",
-      category: "Dessert",
-      image: "/images/1.jpg", 
-      tag: { icon: "cake", title: "Sweet Tooth" }
-    },
-    {
-      id: 8,
-      title: "Sparkling Gold Elixir",
-      price: 18.00,
-      description: "A refreshing blend of elderflower, prosecco, and edible gold flakes.",
-      time: "5 mins",
-      category: "Beverages",
-      image: "/images/2.jpg"
-    }
-  ];
+  useEffect(() => {
+    const q = query(collection(db, "products"), orderBy("name"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        title: doc.data().name, // Map 'name' to 'title'
+        price: doc.data().price,
+        description: doc.data().description,
+        category: doc.data().category,
+        image: doc.data().image,
+        popular: doc.data().popular,
+        // Default values for missing fields
+        time: "15-20 mins",
+        tag: doc.data().popular ? { icon: "star", title: "Popular" } : null
+      }));
+      setMenuItems(items);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching menu items:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const addToCart = (item) => {
     setCart(prevCart => {
@@ -110,9 +59,38 @@ const MenuPage = () => {
   const getTotalItems = () => cart.reduce((total, item) => total + item.quantity, 0);
   const getTotalPrice = () => cart.reduce((total, item) => total + item.price * item.quantity, 0);
 
-  const filteredItems = selectedCategory === "All Items"
-    ? menuItems
-    : menuItems.filter(item => item.category === selectedCategory);
+  const getFilteredItems = () => {
+    let filtered = selectedCategory === "All Items"
+      ? menuItems
+      : menuItems.filter(item => {
+        // Normalize categories for comparison
+        const normalize = (str) => str.toLowerCase().replace(/s$/, ''); // Remove trailing 's'
+        const itemCat = normalize(item.category);
+        const selectedCat = normalize(selectedCategory);
+        // Special handling for mappings if needed
+        if (selectedCat === 'dessert' && itemCat === 'dessert') return true;
+        if (selectedCat === 'main course' && itemCat === 'main') return true;
+        return itemCat === selectedCat || item.category === selectedCategory;
+      });
+
+    // Mapping fallback for simple matches
+    if (selectedCategory !== "All Items") {
+      const catMap = {
+        "Appetizers": "appetizers",
+        "Main Courses": "mains",
+        "Dessert": "desserts",
+        "Beverages": "beverages"
+      };
+      const target = catMap[selectedCategory];
+      if (target) {
+        filtered = menuItems.filter(item => item.category === target);
+      }
+    }
+
+    return filtered;
+  };
+
+  const filteredItems = getFilteredItems();
 
   const sortedItems = [...filteredItems].sort((a, b) => {
     if (sortOption === "Price: Low to High") return a.price - b.price;
@@ -122,7 +100,7 @@ const MenuPage = () => {
 
   return (
     <div className="relative flex flex-col min-h-screen w-full bg-background-dark text-white font-display overflow-x-hidden antialiased selection:bg-primary selection:text-black pt-20">
-      
+
       {/* Background Glow Effect */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
@@ -144,8 +122,8 @@ const MenuPage = () => {
               onClick={() => setSelectedCategory(category)}
               className={`
                 whitespace-nowrap px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider border transition-all duration-300
-                ${selectedCategory === category 
-                  ? "bg-primary text-black border-primary shadow-glow scale-105" 
+                ${selectedCategory === category
+                  ? "bg-primary text-black border-primary shadow-glow scale-105"
                   : "bg-transparent text-[#bab29c] border-[#393528] hover:border-primary hover:text-primary"
                 }
               `}
@@ -159,7 +137,7 @@ const MenuPage = () => {
 
       {/* Main Layout */}
       <div className="relative z-10 flex flex-1 w-full max-w-[1920px] mx-auto">
-        
+
         {/* Sidebar (Desktop Only - Hidden on Mobile) */}
         <aside className="hidden lg:flex flex-col w-64 fixed h-[calc(100vh-80px)] top-20 left-0 border-r border-[#393528]/30 bg-[#12110e]/50 backdrop-blur-sm overflow-y-auto z-40 py-10 pl-6">
           <nav className="flex flex-col gap-2 w-full pr-4">
@@ -168,11 +146,10 @@ const MenuPage = () => {
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`relative flex items-center gap-4 px-6 py-4 rounded-r-full text-left transition-all group w-full ${
-                  selectedCategory === category
-                    ? "text-primary bg-gradient-to-r from-primary/10 to-transparent border-l-2 border-primary"
-                    : "text-[#bab29c] hover:text-white hover:bg-white/5"
-                }`}
+                className={`relative flex items-center gap-4 px-6 py-4 rounded-r-full text-left transition-all group w-full ${selectedCategory === category
+                  ? "text-primary bg-gradient-to-r from-primary/10 to-transparent border-l-2 border-primary"
+                  : "text-[#bab29c] hover:text-white hover:bg-white/5"
+                  }`}
               >
                 <span className={`text-sm tracking-wide ${selectedCategory === category ? 'font-bold' : 'font-medium'}`}>
                   {category}
@@ -180,7 +157,7 @@ const MenuPage = () => {
               </button>
             ))}
           </nav>
-          
+
           <div className="mt-auto pr-6 pb-6">
             <div className="p-6 rounded-2xl bg-card-dark border border-[#393528]/50 relative overflow-hidden group">
               <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -193,7 +170,7 @@ const MenuPage = () => {
 
         {/* Product Grid */}
         <main className="flex-1 w-full lg:pl-72 lg:pr-10 px-4 py-8 lg:py-12">
-          
+
           {/* Header Section (Adjusted for Mobile) */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 lg:mb-12 animate-fade-in">
             <div className="hidden lg:block">
@@ -204,14 +181,14 @@ const MenuPage = () => {
             </div>
             {/* Mobile Title (Smaller) */}
             <div className="lg:hidden text-center w-full">
-               <h2 className="text-2xl font-bold text-white font-display tracking-wide uppercase">{selectedCategory}</h2>
-               <div className="h-0.5 w-10 bg-primary mx-auto mt-2 rounded-full"></div>
+              <h2 className="text-2xl font-bold text-white font-display tracking-wide uppercase">{selectedCategory}</h2>
+              <div className="h-0.5 w-10 bg-primary mx-auto mt-2 rounded-full"></div>
             </div>
 
             {/* Sort Dropdown */}
             <div className="flex items-center justify-between lg:justify-end gap-4 text-[#bab29c] text-xs lg:text-sm border-b border-[#393528] pb-2 w-full lg:w-auto mt-4 lg:mt-0">
               <span>Sort by:</span>
-              <select 
+              <select
                 className="bg-transparent border-none text-white focus:ring-0 cursor-pointer text-xs lg:text-sm font-medium py-0 pl-1 pr-6 outline-none"
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value)}
@@ -226,14 +203,14 @@ const MenuPage = () => {
           {/* Cards Container */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 pb-24">
             {sortedItems.map(item => (
-              <MenuCard 
+              <MenuCard
                 key={item.id}
                 item={item}
                 onAdd={() => addToCart(item)}
               />
             ))}
           </div>
-          
+
           {/* Empty State */}
           {sortedItems.length === 0 && (
             <div className="w-full text-center py-20">
@@ -252,7 +229,7 @@ const MenuPage = () => {
       {/* Floating Cart Button */}
       {cart.length > 0 && (
         <div className="fixed bottom-6 right-6 z-50 animate-fade-in-up">
-          <button 
+          <button
             onClick={() => setShowCheckout(true)}
             className="flex items-center gap-3 bg-gradient-to-r from-[#ffd700] to-[#e9b10c] text-black px-5 py-3 lg:px-6 lg:py-4 rounded-full shadow-lg hover:scale-105 transition-transform font-bold"
           >
@@ -284,8 +261,8 @@ const MenuCard = ({ item, onAdd }) => (
   <div className="bg-card-dark rounded-xl overflow-hidden shadow-lg border border-[#393528]/50 group hover:border-primary/50 transition-all duration-300 flex flex-col h-full relative animate-fade-in-up">
     <div className="relative h-56 lg:h-64 overflow-hidden">
       <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/0 transition-colors duration-500"></div>
-      <div 
-        className="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110" 
+      <div
+        className="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
         style={{ backgroundImage: `url('${item.image}')`, ...item.imageStyle }}
       ></div>
       <div className="absolute bottom-4 left-4 z-20">
@@ -310,8 +287,8 @@ const MenuCard = ({ item, onAdd }) => (
       </p>
       <div className="mt-auto flex items-center justify-between border-t border-[#393528]/30 pt-4">
         <span className="text-[10px] lg:text-xs text-[#bab29c]/60 font-medium uppercase tracking-widest">{item.time}</span>
-        
-        <button 
+
+        <button
           onClick={onAdd}
           className="px-4 py-2 rounded-full bg-primary text-black text-xs lg:text-sm font-bold flex items-center gap-2 shadow-glow hover:bg-white transition-all duration-300 transform active:scale-95"
         >

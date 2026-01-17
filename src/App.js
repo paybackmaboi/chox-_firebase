@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Homepage from './components/Homepage';
 import MenuPage from './components/MenuPage';
 import AboutPage from './components/AboutUs';
-import FAQPage from './components/FAQPage'; 
+import FAQPage from './components/FAQPage';
 import OrderTracking from './components/OrderTracking';
 
 // Admin Imports
@@ -13,6 +13,8 @@ import AdminLayout from './components/admin/AdminLayout';
 import SalesReports from './components/admin/SalesReports';
 import OrdersReports from './components/admin/OrdersReports';
 import InventoryReports from './components/admin/InventoryReports';
+import MenuManagement from './components/admin/MenuManagement';
+import AdminSettings from './components/admin/AdminSettings';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import './App.css';
 
@@ -26,7 +28,7 @@ function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/faq" element={<FAQPage />} /> {/* Add this line */}
           <Route path="/track/:token" element={<OrderTracking />} />
-          
+
           {/* Admin Routes */}
           <Route path="/admin" element={<Navigate to="/admin/signin" replace />} />
           <Route path="/admin/signin" element={<AdminSignin />} />
@@ -43,7 +45,10 @@ function App() {
             <Route index element={<Navigate to="sales" replace />} />
             <Route path="sales" element={<SalesReports />} />
             <Route path="orders" element={<OrdersReports />} />
+            <Route path="orders" element={<OrdersReports />} />
             <Route path="inventory" element={<InventoryReports />} />
+            <Route path="menu" element={<MenuManagement />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Routes>
       </div>
