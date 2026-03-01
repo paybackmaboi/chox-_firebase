@@ -2,18 +2,43 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 1, 21);
+    // Products: Public Read, Admin Write
+    // Allows anyone to view the menu, but only admins can edit items.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders: Public Create/Read (for tracking), Admin Update/Delete
+    // Allows customers to place orders and track them.
+    // Prevents customers from modifying or deleting existing orders.
+    match /orders/{orderId} {
+      allow create: if true;
+      allow read: if true; 
+      allow update, delete: if isAdmin();
+    }
+
+    // Inventory: Admin Only
+    // Strictly for internal management.
+    match /inventory/{itemId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Inventory Logs: Admin Only
+    match /inventory_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Admins: Admin Only
+    // secure the list of authorized admins.
+    match /admins/{userId} {
+      allow read, write: if isAdmin();
     }
   }
 }

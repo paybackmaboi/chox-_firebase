@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../../firebase'; // Import from your firebase config
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth, db, app } from '../../firebase'; // Import app instance as well
+import { createUserWithEmailAndPassword, getAuth, signOut } from 'firebase/auth';
+import { initializeApp, getApp, getApps } from 'firebase/app';
 import { doc, setDoc } from 'firebase/firestore';
 import AlertModal from './AlertModal';
 
@@ -53,21 +54,39 @@ const AdminRegister = () => {
     setLoading(true);
 
     try {
-      // 1. Create user in Firebase Auth
+      // 1. Create a secondary Firebase App instance to create the user
+      // This prevents the current admin from being logged out
+      let secondaryApp;
+      // Check if secondary app already initializes using getApps() to avoid throwing errors
+      const existingApp = getApps().find(app => app.name === "secondary");
+      if (existingApp) {
+        secondaryApp = existingApp;
+      } else {
+        secondaryApp = initializeApp(app.options, "secondary");
+      }
+
+      const secondaryAuth = getAuth(secondaryApp);
+
       const userCredential = await createUserWithEmailAndPassword(
-        auth,
+        secondaryAuth,
         formData.email,
         formData.password
       );
       const user = userCredential.user;
 
-      // 2. Add user to 'admins' collection in Firestore
+      // 2. Add user to 'admins' collection in Firestore using the PRIMARY auth (current admin)
+      // The write happens as the currently logged-in admin, so it passes security rules.
+      // NOTE: We use user.uid from the NEW user.
       await setDoc(doc(db, "admins", user.uid), {
         email: user.email,
         uid: user.uid,
         createdAt: new Date(),
         role: 'admin'
       });
+
+      // Cleanup secondary app/auth is handled by Firebase SDK but good to just leave it.
+      // We sign out the secondary auth to be clean, though not strictly required for logic.
+      await signOut(secondaryAuth);
 
       showAlert("Success", "Admin Account Created Successfully!", "success");
       // Navigation happens in closeAlert now to allow user to see message
@@ -77,7 +96,7 @@ const AdminRegister = () => {
       console.error('Registration error:', err);
       // Handle Firebase specific errors
       if (err.code === 'auth/email-already-in-use') {
-        setError('That email address is already in use!');
+        setError('That email is already registered. Cannot create new admin with existing user via this form.');
       } else if (err.code === 'auth/weak-password') {
         setError('Password should be at least 6 characters.');
       } else {
