@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Header from './Header'; 
+import Header from './Header';
 import { Link } from 'react-router-dom';
 
 const Homepage = () => {
@@ -79,7 +79,7 @@ const Homepage = () => {
 
   return (
     <div className="bg-[#1a1a1a] text-[#F5F5F5] font-display selection:bg-[#D4AF37] selection:text-black overflow-x-hidden relative">
-      
+
       {/* Enhanced CSS Animations with Gold Theme */}
       <style>{`
         .text-gradient-gold {
@@ -144,7 +144,7 @@ const Homepage = () => {
       {/* ------------------------------- */}
 
       <div className="relative flex min-h-screen w-full flex-col z-10">
-        
+
         {/* --- UNIFORM HEADER --- */}
         <Header />
         {/* ---------------------- */}
@@ -155,30 +155,30 @@ const Homepage = () => {
           <div className="absolute inset-0 z-0 bg-cover bg-center" style={{ backgroundImage: 'url("/images/open.jpg")' }}>
             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-[#1a1a1a]"></div>
           </div>
-          
+
           <div className="relative z-30 text-center px-6 max-w-5xl animate-fade-in-up">
             <div className="mb-8 flex justify-center">
               <div className="p-5 rounded-full border-2 border-[#D4AF37] bg-black/40 backdrop-blur-md gold-glow-strong gold-pulse">
-                <img 
-                  src="/logo.jpg" 
-                  alt="CHOX Kitchen Logo" 
-                  className="w-24 h-24 rounded-full object-cover animate-pulse" 
+                <img
+                  src="/logo.jpg"
+                  alt="CHOX Kitchen Logo"
+                  className="w-24 h-24 rounded-full object-cover animate-pulse"
                 />
               </div>
             </div>
-            
+
             <h1 className="text-gradient-gold text-6xl md:text-8xl lg:text-9xl font-light tracking-tighter mb-6 drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
               CHOX KITCHEN
             </h1>
-            
+
             <p className="text-white text-xl md:text-3xl font-light tracking-wide mb-14 drop-shadow-md">
               Taste the World, Delivered to Your Door
             </p>
-            
-           
+
+
           </div>
-          
-        
+
+
         </div>
 
         {/* SELECTION / MENU HIGHLIGHTS */}
@@ -192,12 +192,12 @@ const Homepage = () => {
             <h3 className="text-[#FFD700] text-sm font-bold uppercase tracking-[0.3em] mb-4 drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">Selection</h3>
             <h2 className="text-5xl md:text-6xl font-light text-white">Curated <span className="text-gradient-gold">Highlights</span></h2>
           </div>
-          
+
           {/* Carousel Container */}
           <div className="max-w-7xl mx-auto relative z-10">
             {/* Carousel Wrapper */}
             <div className="relative overflow-hidden">
-              <div 
+              <div
                 className="flex carousel-smooth"
                 style={{ transform: `translateX(-${currentSlide * 100}%)` }}
               >
@@ -210,29 +210,27 @@ const Homepage = () => {
                         const displayItem = menuItems[itemIndex];
                         const isCenter = offset === 1;
                         return (
-                          <div 
-                            key={displayItem.id} 
-                            className={`carousel-item group relative h-[550px] border-2 overflow-hidden bg-[#252525] rounded-sm gold-shimmer ${
-                              isCenter 
-                                ? 'md:-mt-12 border-[#FFD700] shadow-[0_0_60px_rgba(255,215,0,0.6)] scale-105 z-10' 
+                          <div
+                            key={displayItem.id}
+                            className={`carousel-item group relative h-[550px] border-2 overflow-hidden bg-[#252525] rounded-sm gold-shimmer ${isCenter
+                                ? 'md:-mt-12 border-[#FFD700] shadow-[0_0_60px_rgba(255,215,0,0.6)] scale-105 z-10'
                                 : 'border-[#D4AF37]/30 hover:border-[#FFD700] hover:shadow-[0_0_60px_rgba(255,215,0,0.4)]'
-                            }`}
+                              }`}
                             style={{
                               transition: 'all 800ms cubic-bezier(0.4, 0, 0.2, 1)',
                             }}
                             onMouseEnter={() => isCenter && setIsPaused(true)}
                             onMouseLeave={() => isCenter && setIsPaused(false)}
                           >
-                            <div 
-                              className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110 opacity-80 group-hover:opacity-100" 
-                              style={{ 
+                            <div
+                              className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                              style={{
                                 backgroundImage: `url("${displayItem.image}")`,
                                 transition: 'transform 1000ms cubic-bezier(0.4, 0, 0.2, 1), opacity 800ms ease-in-out'
                               }}
                             ></div>
-                            <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent transition-opacity duration-700 ${
-                              isCenter ? 'opacity-70 group-hover:opacity-50' : 'opacity-80 group-hover:opacity-60'
-                            }`}></div>
+                            <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent transition-opacity duration-700 ${isCenter ? 'opacity-70 group-hover:opacity-50' : 'opacity-80 group-hover:opacity-60'
+                              }`}></div>
                             {displayItem.badge && (
                               <div className="absolute top-4 right-4 bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black text-xs font-bold px-4 py-2 uppercase tracking-widest gold-glow animate-pulse">
                                 {displayItem.badge}
@@ -243,11 +241,10 @@ const Homepage = () => {
                                 Featured
                               </div>
                             )}
-                            <div className={`absolute bottom-0 left-0 w-full p-10 border-t backdrop-blur-md bg-black/30 transition-transform duration-500 ${
-                              isCenter 
-                                ? 'border-[#FFD700]/30 translate-y-0' 
+                            <div className={`absolute bottom-0 left-0 w-full p-10 border-t backdrop-blur-md bg-black/30 transition-transform duration-500 ${isCenter
+                                ? 'border-[#FFD700]/30 translate-y-0'
                                 : 'border-[#D4AF37]/10 translate-y-2 group-hover:translate-y-0'
-                            }`}>
+                              }`}>
                               <div className="flex justify-between items-end">
                                 <div>
                                   <h3 className={`text-3xl text-gradient-gold font-display font-medium mb-2 transition-all duration-500 ${isCenter ? 'drop-shadow-[0_0_10px_rgba(255,215,0,0.8)]' : ''}`}>
@@ -270,14 +267,14 @@ const Homepage = () => {
             </div>
 
             {/* Navigation Arrows */}
-            <button 
+            <button
               onClick={goToPrevious}
               className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-[#FFD700]/20 hover:bg-[#FFD700]/40 backdrop-blur-md p-3 rounded-full transition-all duration-300 gold-glow hidden md:block hover:scale-110 active:scale-95"
               aria-label="Previous"
             >
               <span className="material-symbols-outlined text-[#FFD700] text-3xl">chevron_left</span>
             </button>
-            <button 
+            <button
               onClick={goToNext}
               className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-[#FFD700]/20 hover:bg-[#FFD700]/40 backdrop-blur-md p-3 rounded-full transition-all duration-300 gold-glow hidden md:block hover:scale-110 active:scale-95"
               aria-label="Next"
@@ -291,11 +288,10 @@ const Homepage = () => {
                 <button
                   key={index}
                   onClick={() => goToSlide(index)}
-                  className={`transition-all duration-500 rounded-full ${
-                    currentSlide === index 
-                      ? 'w-12 h-3 bg-[#FFD700] gold-glow scale-110' 
+                  className={`transition-all duration-500 rounded-full ${currentSlide === index
+                      ? 'w-12 h-3 bg-[#FFD700] gold-glow scale-110'
                       : 'w-3 h-3 bg-gray-600 hover:bg-gray-400 hover:scale-125'
-                  }`}
+                    }`}
                   aria-label={`Go to slide ${index + 1}`}
                 />
               ))}
@@ -322,10 +318,10 @@ const Homepage = () => {
                 <span className="text-gradient-gold font-bold">How</span> It Works
               </h2>
             </div>
-            
+
             <div className="relative flex flex-col md:flex-row justify-between items-center gap-16 md:gap-0">
               <div className="absolute top-10 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent hidden md:block"></div>
-              
+
               <div className="relative z-10 flex flex-col items-center text-center group w-full md:w-1/3">
                 <div className="w-20 h-20 rounded-full bg-[#1a1a1a] border-2 border-[#FFD700] flex items-center justify-center mb-8 gold-glow group-hover:bg-gradient-to-br group-hover:from-[#FFD700] group-hover:to-[#D4AF37] group-hover:text-black group-hover:shadow-[0_0_50px_rgba(255,215,0,0.8)] transition-all duration-500 transform group-hover:-translate-y-2 group-hover:scale-110">
                   <span className="material-symbols-outlined text-3xl text-[#FFD700] group-hover:text-black">search</span>
@@ -358,7 +354,7 @@ const Homepage = () => {
           <div className="relative w-full max-w-6xl h-[600px] rounded-sm overflow-hidden border-2 border-[#D4AF37]/40 shadow-[0_0_80px_rgba(255,215,0,0.2)] group gold-shimmer">
             <div className="absolute inset-0 bg-cover bg-center blur-[2px] opacity-70 scale-105 group-hover:scale-100 transition-transform duration-[2s]" style={{ backgroundImage: 'url("/images/4.jpg")' }}></div>
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/60 to-black/30"></div>
-            
+
             <div className="relative z-10 h-full flex flex-col justify-center px-10 md:px-24 max-w-3xl">
               <span className="material-symbols-outlined text-8xl text-[#FFD700]/30 mb-8 drop-shadow-[0_0_20px_rgba(255,215,0,0.4)]">format_quote</span>
               <p className="text-3xl md:text-5xl text-white font-light italic leading-tight mb-12 drop-shadow-lg">
@@ -379,7 +375,7 @@ const Homepage = () => {
         <div className="w-full bg-[#222222] py-24 px-4 border-t border-[#FFD700]/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#FFD700]/10 rounded-full blur-[150px] pointer-events-none animate-pulse"></div>
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#D4AF37]/8 rounded-full blur-[150px] pointer-events-none animate-pulse"></div>
-          
+
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-12">
               <h2 className="text-4xl md:text-6xl font-light text-white mb-4">
@@ -387,22 +383,22 @@ const Homepage = () => {
               </h2>
               <p className="text-gray-400 font-light text-lg">Find us and experience culinary excellence in person</p>
             </div>
-            
+
             <div className="relative rounded-lg overflow-hidden border-2 border-[#FFD700]/30 gold-glow-strong">
-              <iframe 
+              <iframe
                 src="https://www.google.com/maps/embed?pb=!4v1772324276434!6m8!1m7!1sK3gw1A_d7oAX5yQR8yZ0YQ!2m2!1d10.40243225524867!2d123.9200615332288!3f322.07491673568387!4f-26.468847362759313!5f0.7820865974627469"
-                width="100%" 
-                height="450" 
+                width="100%"
+                height="450"
                 style={{ border: 0 }}
-                allowFullScreen="" 
-                loading="lazy" 
+                allowFullScreen=""
+                loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 allow="accelerometer; gyroscope; magnetometer"
                 title="CHOX Kitchen Location"
                 className="w-full"
               ></iframe>
             </div>
-            
+
             <div className="mt-8 text-center">
               <div className="inline-flex items-center gap-3 text-[#FFD700] text-lg">
                 <span className="material-symbols-outlined text-3xl">location_on</span>
@@ -417,7 +413,7 @@ const Homepage = () => {
           <div className="max-w-7xl mx-auto px-6 py-16">
             {/* Main Footer Content */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
-              
+
               {/* Company Info */}
               <div>
                 <h3 className="text-gradient-gold font-bold text-2xl tracking-[0.2em] mb-4">CHOX KITCHEN</h3>
@@ -500,17 +496,17 @@ const Homepage = () => {
                   Follow us on social media for updates and special offers.
                 </p>
                 <div className="flex gap-4 mb-6">
-                  <a href="#" className="w-10 h-10 rounded-full bg-[#252525] border border-[#FFD700]/30 flex items-center justify-center text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-all duration-300 gold-glow">
+                  <button type="button" className="w-10 h-10 rounded-full bg-[#252525] border border-[#FFD700]/30 flex items-center justify-center text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-all duration-300 gold-glow">
                     <span className="material-symbols-outlined text-xl">public</span>
-                  </a>
-                  <a href="#" className="w-10 h-10 rounded-full bg-[#252525] border border-[#FFD700]/30 flex items-center justify-center text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-all duration-300 gold-glow">
+                  </button>
+                  <button type="button" className="w-10 h-10 rounded-full bg-[#252525] border border-[#FFD700]/30 flex items-center justify-center text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-all duration-300 gold-glow">
                     <span className="material-symbols-outlined text-xl">share</span>
-                  </a>
+                  </button>
                 </div>
                 <div className="mt-4">
-                  <input 
-                    type="email" 
-                    placeholder="Your email" 
+                  <input
+                    type="email"
+                    placeholder="Your email"
                     className="w-full bg-[#252525] border border-[#FFD700]/30 rounded px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-colors mb-2"
                   />
                   <button className="w-full bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black font-bold text-sm py-2 rounded hover:from-[#F3D675] hover:to-[#FFD700] transition-all duration-300">

@@ -13,6 +13,7 @@ const MenuPage = () => {
   const [showCheckout, setShowCheckout] = useState(false);
 
   const [menuItems, setMenuItems] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(true);
 
   const categories = ["All Items", "Appetizers", "Main Courses", "Dessert", "Beverages"];
@@ -56,6 +57,7 @@ const MenuPage = () => {
     });
   };
 
+  // eslint-disable-next-line no-unused-vars
   const getTotalItems = () => cart.reduce((total, item) => total + item.quantity, 0);
   const getTotalPrice = () => cart.reduce((total, item) => total + item.price * item.quantity, 0);
 

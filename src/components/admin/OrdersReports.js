@@ -83,6 +83,7 @@ const OrdersReports = () => {
       unsubscribe();
       fetchProducts();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrder?.id]); // Depend on ID to keep listener fresh but mostly for logic correctness
 
   const showNotification = (type, message) => {

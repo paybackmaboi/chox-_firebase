@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Header from './Header'; 
+import Header from './Header';
 import { Link } from 'react-router-dom';
 
 const FAQPage = () => {
@@ -48,7 +48,7 @@ const FAQPage = () => {
     // Base Background: Deep Luxury Dark (almost black but warmer)
     <div className="bg-[#12110e] font-display text-[#F5F5F5] antialiased overflow-x-hidden min-h-screen pt-20 selection:bg-[#e9b10c] selection:text-black">
       <div className="relative flex min-h-screen w-full flex-col group/design-root">
-        
+
         {/* --- UNIFORM HEADER --- */}
         <Header />
         {/* ---------------------- */}
@@ -59,7 +59,7 @@ const FAQPage = () => {
           <div className="absolute inset-0 bg-cover bg-center z-0" style={{ backgroundImage: 'url("/images/open.jpg")' }}>
             <div className="absolute inset-0 bg-gradient-to-b from-[#12110e]/95 via-[#12110e]/90 to-[#12110e]"></div>
           </div>
-          
+
           <div className="relative z-10 layout-container flex flex-col items-center justify-center px-4 py-20 lg:py-28 text-center">
             <div className="flex flex-col gap-4 max-w-[800px] animate-fade-in-up">
               <span className="text-[#e9b10c] text-sm font-bold tracking-[0.2em] uppercase mb-2">Support Center</span>
@@ -70,7 +70,7 @@ const FAQPage = () => {
                 Everything you need to know about our services, delivery, and culinary experience.
               </p>
             </div>
-            
+
             {/* Professional Search Bar */}
             <div className="mt-12 w-full max-w-[600px] animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
               <div className="relative group">
@@ -79,10 +79,10 @@ const FAQPage = () => {
                   <div className="pointer-events-none pl-6 text-[#bab29c] group-focus-within:text-[#e9b10c] transition-colors">
                     <span className="material-symbols-outlined text-2xl">search</span>
                   </div>
-                  <input 
-                    className="block w-full bg-transparent py-5 pl-4 pr-32 text-white placeholder:text-[#5a5446] focus:outline-none font-light text-lg" 
-                    placeholder="How can we help you?" 
-                    type="text" 
+                  <input
+                    className="block w-full bg-transparent py-5 pl-4 pr-32 text-white placeholder:text-[#5a5446] focus:outline-none font-light text-lg"
+                    placeholder="How can we help you?"
+                    type="text"
                   />
                   <div className="absolute right-2">
                     <button className="rounded-lg bg-[#e9b10c] px-6 py-2.5 text-sm font-bold text-[#12110e] hover:bg-[#ffcd38] transition-all shadow-lg hover:shadow-[#e9b10c]/20">
@@ -98,11 +98,11 @@ const FAQPage = () => {
         {/* MAIN CONTENT AREA */}
         <main className="layout-container flex flex-col items-center flex-1 px-4 py-16 md:px-10 relative z-10">
           <div className="w-full max-w-[1000px] space-y-16">
-            
+
             {/* Dynamic FAQ Categories */}
             {faqCategories.map((category, catIndex) => (
               <section key={catIndex} className="animate-fade-in-up" style={{ animationDelay: `${0.2 + (catIndex * 0.1)}s` }}>
-                
+
                 {/* Category Header */}
                 <div className="flex items-center gap-4 mb-8">
                   <div className="w-12 h-12 rounded-full bg-[#1a1814] border border-[#393528] flex items-center justify-center text-[#e9b10c] shadow-glow">
@@ -110,7 +110,7 @@ const FAQPage = () => {
                   </div>
                   <h2 className="text-white text-2xl font-display font-medium tracking-wide">{category.title}</h2>
                 </div>
-                
+
                 {/* Questions Grid */}
                 <div className="grid gap-4">
                   {category.questions.map((item, qIndex) => {
@@ -118,11 +118,11 @@ const FAQPage = () => {
                     const isOpen = activeIndex === uniqueId;
 
                     return (
-                      <div 
-                        key={uniqueId} 
+                      <div
+                        key={uniqueId}
                         className={`group rounded-xl border transition-all duration-300 overflow-hidden
-                          ${isOpen 
-                            ? 'bg-[#1a1814] border-[#e9b10c]/30 shadow-[0_4px_20px_-10px_rgba(233,177,12,0.15)]' 
+                          ${isOpen
+                            ? 'bg-[#1a1814] border-[#e9b10c]/30 shadow-[0_4px_20px_-10px_rgba(233,177,12,0.15)]'
                             : 'bg-[#1a1814]/50 border-[#393528] hover:border-[#e9b10c]/20 hover:bg-[#1a1814]'
                           }`}
                       >
@@ -138,8 +138,8 @@ const FAQPage = () => {
                             <span className="material-symbols-outlined text-sm">expand_more</span>
                           </div>
                         </button>
-                        
-                        <div 
+
+                        <div
                           className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}
                         >
                           <div className="px-6 pb-6 pt-0">
@@ -161,12 +161,12 @@ const FAQPage = () => {
               {/* Background Glow */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#1a1814] to-[#12110e]"></div>
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#e9b10c]/5 rounded-full blur-[80px] group-hover:bg-[#e9b10c]/10 transition-colors duration-700"></div>
-              
+
               <div className="relative z-10 flex flex-col items-center gap-6">
                 <div className="rounded-full bg-[#e9b10c]/10 p-5 border border-[#e9b10c]/20 shadow-[0_0_30px_rgba(233,177,12,0.1)]">
                   <span className="material-symbols-outlined text-[#e9b10c] text-4xl">support_agent</span>
                 </div>
-                
+
                 <div className="space-y-2">
                   <h3 className="text-white text-2xl font-display font-medium">Still have questions?</h3>
                   <p className="text-[#8a8476] max-w-md mx-auto font-light">
@@ -188,7 +188,7 @@ const FAQPage = () => {
         <footer className="w-full border-t border-[#393528] bg-[#0e0d0b] py-16 px-6 mt-10">
           <div className="layout-container mx-auto max-w-[1280px]">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
-              
+
               <div className="flex flex-col gap-6">
                 <div className="flex items-center gap-3">
                   <div className="size-8 rounded-full border border-[#e9b10c]/30 flex items-center justify-center bg-[#1a1814]">
@@ -218,20 +218,20 @@ const FAQPage = () => {
               <div className="flex flex-col gap-4">
                 <h4 className="text-white font-bold text-sm uppercase tracking-widest mb-2">Connect</h4>
                 <div className="flex gap-4">
-                  <a className="w-10 h-10 rounded-full border border-[#393528] flex items-center justify-center text-[#bab29c] hover:border-[#e9b10c] hover:text-[#e9b10c] hover:bg-[#e9b10c]/10 transition-all" href="#">
+                  <button type="button" className="w-10 h-10 rounded-full border border-[#393528] flex items-center justify-center text-[#bab29c] hover:border-[#e9b10c] hover:text-[#e9b10c] hover:bg-[#e9b10c]/10 transition-all">
                     <span className="material-symbols-outlined text-lg">public</span>
-                  </a>
-                  <a className="w-10 h-10 rounded-full border border-[#393528] flex items-center justify-center text-[#bab29c] hover:border-[#e9b10c] hover:text-[#e9b10c] hover:bg-[#e9b10c]/10 transition-all" href="#">
+                  </button>
+                  <button type="button" className="w-10 h-10 rounded-full border border-[#393528] flex items-center justify-center text-[#bab29c] hover:border-[#e9b10c] hover:text-[#e9b10c] hover:bg-[#e9b10c]/10 transition-all">
                     <span className="material-symbols-outlined text-lg">photo_camera</span>
-                  </a>
-                  <a className="w-10 h-10 rounded-full border border-[#393528] flex items-center justify-center text-[#bab29c] hover:border-[#e9b10c] hover:text-[#e9b10c] hover:bg-[#e9b10c]/10 transition-all" href="#">
+                  </button>
+                  <button type="button" className="w-10 h-10 rounded-full border border-[#393528] flex items-center justify-center text-[#bab29c] hover:border-[#e9b10c] hover:text-[#e9b10c] hover:bg-[#e9b10c]/10 transition-all">
                     <span className="material-symbols-outlined text-lg">chat</span>
-                  </a>
+                  </button>
                 </div>
               </div>
 
             </div>
-            
+
             <div className="mt-16 border-t border-[#393528] pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
               <p className="text-[#5a5446] text-xs uppercase tracking-wider">© 2024 Chox Kitchen. All rights reserved.</p>
               <p className="text-[#5a5446] text-xs">Cebu City, Philippines</p>

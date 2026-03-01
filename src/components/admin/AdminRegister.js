@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db, app } from '../../firebase'; // Import app instance as well
+import { db, app } from '../../firebase'; // Import app instance as well
 import { createUserWithEmailAndPassword, getAuth, signOut } from 'firebase/auth';
-import { initializeApp, getApp, getApps } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { doc, setDoc } from 'firebase/firestore';
 import AlertModal from './AlertModal';
 

@@ -370,7 +370,9 @@ const LogsView = ({ logs = [] }) => {
 // ==========================================
 const InventoryView = ({ inventoryItems, onStockIn, onStockOut, onDelete, loading, showAlert }) => {
   const [isStockInOpen, setIsStockInOpen] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [isStockOutOpen, setIsStockOutOpen] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [selectedItemForOut, setSelectedItemForOut] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
 
